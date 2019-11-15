@@ -14,7 +14,7 @@
 
 Name:       image-provision
 Version:    %{_version}
-Release:    3%{?dist}
+Release:    4%{?dist}
 Summary:    Contains dracut modules used for provisioning master image from a boot CD.
 License:    %{_platform_licence}
 Source0:    %{name}-%{version}.tar.gz
