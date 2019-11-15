@@ -77,7 +77,7 @@ for hd_dev in ${hd_devices[@]}; do
     if [ -b /dev/$hd_dev ] && (( is_removable $hd_dev ) || ( is_partition $hd_dev ) || ( is_loop $hd_dev )); then
         logmsg "Removable, loop or partition $hd_dev. Skipping..."
         continue
-    elif ! [ -b /dev/$hd_dev ];then
+    elif ! [ -b /dev/$hd_dev ]; then
         continue
     fi
     logmsg "Erasing existing GPT and MBR data structures from ${hd_dev}"
@@ -96,18 +96,40 @@ if [ $? -ne 0 ]; then
 fi
 sync
 
+is_esp_partition_present "${rootdev}"
+rootdev_has_uefi=$?
+
+# For UEFI systems (which imply using a GPT partition table), fix the GPT backup
+# data structures by moving them to the end of the disk; rootfs partition will
+# have index 3 (1=ESP, 2=boot, 3=rootfs), unlike BIOS/MBR layout where it has 1.
+if [ "${rootdev_has_uefi}" -eq 0 ]; then
+    sgdisk -e "${rootdev}"
+    sleep 5
+    rootpartno=3
+else
+    rootpartno=1
+fi
+
 logmsg "${rootdev} dumped successfully!"
 echo "Finishing installation... Please wait." > $CONSOLE_DEV
 
 partprobe ${rootdev}
 # create a new partion for LVMs before rootfs expands till end
-parted ${rootdev} --script -- mkpart primary 50GiB -1
+parted ${rootdev} --script -a optimal -- mkpart primary 50GiB -1
 partprobe ${rootdev}
 
-mount ${rootdev}1 /sysroot/
+mount "${rootdev}${rootpartno}" /sysroot/
 if [ $? -ne 0 ];then
     logmsg "FAILED TO MOUNT SYSROOT. All hope is lost"
     exit 255
+fi
+
+if [ "${rootdev_has_uefi}" -eq 0 ]; then
+    mount "${rootdev}1" /sysroot/boot/efi
+    if [ $? -ne 0 ];then
+        logmsg "FAILED TO MOUNT EFI SYSTEM PARTITION. All hope is lost"
+        exit 255
+    fi
 fi
 
 kernel_cmdline="intel_iommu=on iommu=pt crashkernel=256M"
@@ -125,10 +147,14 @@ fi
 run_crit mount -o bind /dev /sysroot/dev
 run_crit mount -o bind /proc /sysroot/proc
 run_crit mount -o bind /sys /sysroot/sys
-run_crit chroot /sysroot /bin/bash -c \"/usr/sbin/grub2-mkconfig -o /boot/grub2/grub.cfg\"
+if [ "${rootdev_has_uefi}" -eq 0 ]; then
+    run_crit chroot /sysroot /bin/bash -c \"/usr/sbin/grub2-mkconfig -o /boot/efi/EFI/centos/grub.cfg\"
+else
+    run_crit chroot /sysroot /bin/bash -c \"/usr/sbin/grub2-mkconfig -o /boot/grub2/grub.cfg\"
+fi
 
 logmsg "Extending partition and filesystem size"
-run_crit chroot /sysroot /bin/bash -c \"growpart ${rootdev} 1\"
+run_crit chroot /sysroot /bin/bash -c \"growpart ${rootdev} ${rootpartno}\"
 run_crit chroot /sysroot /bin/bash -c \"xfs_growfs /\"
 
 logmsg "Copying cloud guest image"
