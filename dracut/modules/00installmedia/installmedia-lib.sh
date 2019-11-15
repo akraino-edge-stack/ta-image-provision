@@ -121,6 +121,15 @@ function is_removable(){
 
 }
 
+function is_esp_partition_present(){
+    check_params 1 "$@"
+    device=$1
+    if [ 'vfat' = "$(blkid -o value -s TYPE ${device}1)" ]; then
+        return 0
+    fi
+    return 1
+}
+
 function get_config_from_device_end(){
     check_params 1 "$@"
     local BOOTDEVICE=$1
