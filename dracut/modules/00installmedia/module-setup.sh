@@ -30,7 +30,7 @@ depends ()
 
 installkernel()
 {
-    instmods = sr_mod mpt3sas raid_class scsi_transport_sas weak-updates/be2iscsi/be2iscsi ipmi_msghandler ipmi_devintf ipmi_si
+    instmods = sr_mod mpt3sas raid_class scsi_transport_sas weak-updates/be2iscsi/be2iscsi ipmi_msghandler ipmi_devintf ipmi_si ipmi_ssif
 }
 
 install_python_module() {
