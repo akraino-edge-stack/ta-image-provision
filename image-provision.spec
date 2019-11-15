@@ -14,7 +14,7 @@
 
 Name:       image-provision
 Version:    %{_version}
-Release:    3%{?dist}
+Release:    4%{?dist}
 Summary:    Contains dracut modules used for provisioning master image from a boot CD.
 License:    %{_platform_licence}
 Source0:    %{name}-%{version}.tar.gz
@@ -22,7 +22,7 @@ Vendor:     %{_platform_vendor}
 BuildArch:  noarch
 
 BuildRequires: rsync
-Requires: cloud-init, dracut, coreutils, parted, gzip, iproute, util-linux, findutils, kmod, kbd, iscsi-initiator-utils, qemu-img-ev, gdisk, tar, wget, curl, glibc, hw-detector
+Requires: cloud-init, dracut, coreutils, parted, gzip, iproute, cloud-utils, findutils, kmod, kbd, iscsi-initiator-utils, gdisk, tar, wget, curl, glibc, hw-detector
 
 %description
 This RPM contains dracut modules. They are used for provisioning master image from a boot CD.
